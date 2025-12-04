@@ -22,7 +22,16 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "types": ["node", "jest"]
-  }
-  ,
-  "exclude": ["node_modules"]
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "prisma",
+    "test",
+    "uploads",
+    "scripts",
+    "**/*spec.ts",
+    "**/*.test.ts"
+  ]
 }
