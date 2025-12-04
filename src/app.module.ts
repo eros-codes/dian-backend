@@ -30,7 +30,12 @@ import { SharedCartModule } from './shared-cart/shared-cart.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      // In production rely on the environment provided by the host (e.g. Railway).
+      // In non-production, load `.env` from project root if present.
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
+    }),
     // Use Redis-backed throttler storage for production-like behavior
     ThrottlerModule.forRootAsync({
       imports: [RedisModule],

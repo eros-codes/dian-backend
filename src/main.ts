@@ -13,6 +13,15 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import type { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import type { Response } from 'express';
 import cookieParser from 'cookie-parser';
+// Load local .env in non-production environments so child processes (prisma migrate, etc.) have access
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    require('dotenv').config({ path: join(process.cwd(), '.env') });
+  } catch (e) {
+    // ignore if dotenv is not available
+  }
+}
 // Use dynamic require for `helmet` so builds don't fail if package isn't installed yet
 let helmet: any;
 try {
