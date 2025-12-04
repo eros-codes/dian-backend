@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تست درگاه پرداخت</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #2196F3;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .result.success {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            color: #2e7d32;
+        }
+        .result.error {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            color: #c62828;
+        }
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-right: 4px solid #2196F3;
+        }
+        .info p {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .status {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔐 تست درگاه پرداخت زرین‌پال</h1>
+        
+        <div class="info">
+            <p><strong>📌 مراحل تست:</strong></p>
+            <p>1️⃣ اطمینان حاصل کنید که backend روشن است (port 4000)</p>
+            <p>2️⃣ یک Order ID معتبر وارد کنید</p>
+            <p>3️⃣ روی دکمه "تست پرداخت" کلیک کنید</p>
+        </div>
+
+        <div class="status" id="status">⏳</div>
+
+        <form id="paymentForm">
+            <div class="form-group">
+                <label for="orderId">شناسه سفارش (Order ID):</label>
+                <input 
+                    type="text" 
+                    id="orderId" 
+                    placeholder="مثال: clxxx123456" 
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="apiUrl">آدرس API (اختیاری):</label>
+                <input 
+                    type="text" 
+                    id="apiUrl" 
+                    value="http://localhost:4000" 
+                    placeholder="http://localhost:4000"
+                >
+            </div>
+
+            <button type="submit" id="submitBtn">🚀 تست پرداخت</button>
+        </form>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('paymentForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const resultDiv = document.getElementById('result');
+        const statusDiv = document.getElementById('status');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const orderId = document.getElementById('orderId').value.trim();
+            const apiUrl = document.getElementById('apiUrl').value.trim() || 'http://localhost:4000';
+
+            if (!orderId) {
+                showResult('error', '❌ لطفاً شناسه سفارش را وارد کنید');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ درحال ارسال...';
+            statusDiv.textContent = '⏳';
+            resultDiv.style.display = 'none';
+
+            try {
+                console.log('🔵 ارسال درخواست به:', `${apiUrl}/api/pay/create`);
+                console.log('🔵 Order ID:', orderId);
+
+                const response = await fetch(`${apiUrl}/api/pay/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ orderId }),
+                });
+
+                console.log('🔵 Status:', response.status);
+                const data = await response.json();
+                console.log('🔵 Response:', data);
+
+                if (data.success && data.url) {
+                    statusDiv.textContent = '✅';
+                    showResult('success', 
+                        `✅ موفقیت! لینک پرداخت ایجاد شد:<br><br>` +
+                        `<a href="${data.url}" target="_blank" style="color: #2196F3; word-break: break-all;">${data.url}</a><br><br>` +
+                        `<small>صفحه زرین‌پال در 3 ثانیه باز می‌شود...</small>`
+                    );
+                    
+                    // ریدایرکت خودکار بعد از 3 ثانیه
+                    setTimeout(() => {
+                        window.open(data.url, '_blank');
+                    }, 3000);
+                } else {
+                    statusDiv.textContent = '❌';
+                    showResult('error', `❌ خطا: ${data.message || 'پاسخ نامعتبر از سرور'}`);
+                }
+            } catch (error) {
+                console.error('❌ خطا:', error);
+                statusDiv.textContent = '❌';
+                
+                let errorMsg = '❌ خطا در اتصال به سرور!<br><br>';
+                
+                if (error.message.includes('Failed to fetch')) {
+                    errorMsg += '<strong>احتمالاً backend روشن نیست.</strong><br>';
+                    errorMsg += 'لطفاً اطمینان حاصل کنید که backend روی port 4000 در حال اجراست.<br><br>';
+                    errorMsg += '<code>cd backend && npm run start:dev</code>';
+                } else {
+                    errorMsg += error.message;
+                }
+                
+                showResult('error', errorMsg);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🚀 تست پرداخت';
+            }
+        });
+
+        function showResult(type, message) {
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+        }
+
+        // چک کردن backend در لود صفحه
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('http://localhost:4000/api/pay/status/test', {
+                    method: 'GET',
+                });
+                if (response.ok) {
+                    statusDiv.textContent = '✅';
+                    console.log('✅ Backend در حال اجراست');
+                } else {
+                    statusDiv.textContent = '⚠️';
+                    console.warn('⚠️ Backend پاسخ غیرمنتظره داد');
+                }
+            } catch (error) {
+                statusDiv.textContent = '❌';
+                console.error('❌ Backend در دسترس نیست');
+            }
+        });
+    </script>
+</body>
+</html>
