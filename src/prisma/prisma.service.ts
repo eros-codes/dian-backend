@@ -11,22 +11,16 @@ export class PrismaService
 
   constructor(private readonly configService: ConfigService) {
     // Determine the database URL from ConfigService or process.env
-    const url = configService.get<string>('DATABASE_URL') ?? process.env.DATABASE_URL;
+    const url = configService.get<string>('DATABASE_URL');
 
-    // In production, fail early with a clear message if DATABASE_URL is missing
-    if (!url && process.env.NODE_ENV === 'production') {
+    // Always require DATABASE_URL to be provided via environment/config
+    if (!url) {
       throw new Error('Missing required environment variable DATABASE_URL');
     }
 
-    // If a URL is available, pass it as a datasource to PrismaClient constructor.
-    // Otherwise call super() without datasources so Prisma uses process.env at runtime.
-    if (url) {
-      super({ datasources: { db: { url } } } as any);
-      this.logger.log('PrismaClient configured with explicit datasource URL');
-    } else {
-      super();
-      this.logger.log('PrismaClient configured to read datasource URL from process.env at runtime');
-    }
+    // Pass explicit datasource to Prisma so it's deterministic
+    super({ datasources: { db: { url } } } as any);
+    this.logger.log('PrismaClient configured with explicit datasource URL');
   }
 
   async onModuleInit(): Promise<void> {

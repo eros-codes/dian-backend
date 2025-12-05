@@ -72,17 +72,24 @@ export class QrService {
     private readonly redis: RedisService,
     private readonly config: ConfigService,
   ) {
-    this.tokenLength = parseInt(this.config.get('QR_TOKEN_LENGTH', '24'), 10);
-    this.tokenTtl = parseInt(
-      this.config.get('QR_TOKEN_TTL_SECONDS', '600'),
-      10,
-    );
-    this.clientUrl = this.config.get('CLIENT_URL', 'http://localhost:3001');
-    this.bindToIp = this.config.get('QR_BIND_TO_IP', 'false') === 'true';
-    this.sessionTtl = parseInt(
-      this.config.get('QR_SESSION_TTL_SECONDS', '600'),
-      10,
-    );
+    const tokenLengthStr = this.config.get<string>('QR_TOKEN_LENGTH');
+    const tokenTtlStr = this.config.get<string>('QR_TOKEN_TTL_SECONDS');
+    const clientUrlStr = this.config.get<string>('CLIENT_URL');
+    const bindToIpStr = this.config.get<string>('QR_BIND_TO_IP');
+    const sessionTtlStr = this.config.get<string>('QR_SESSION_TTL_SECONDS');
+
+    if (!tokenLengthStr) throw new Error('Missing QR_TOKEN_LENGTH in environment');
+    if (!tokenTtlStr) throw new Error('Missing QR_TOKEN_TTL_SECONDS in environment');
+    if (!clientUrlStr) throw new Error('Missing CLIENT_URL in environment');
+    if (bindToIpStr === undefined) throw new Error('Missing QR_BIND_TO_IP in environment');
+    if (!sessionTtlStr) throw new Error('Missing QR_SESSION_TTL_SECONDS in environment');
+
+    this.tokenLength = parseInt(tokenLengthStr, 10);
+    this.tokenTtl = parseInt(tokenTtlStr, 10);
+    // CLIENT_URL may be comma-separated; take first value
+    this.clientUrl = clientUrlStr.split(',')[0].trim();
+    this.bindToIp = bindToIpStr === 'true';
+    this.sessionTtl = parseInt(sessionTtlStr, 10);
   }
 
   /**

@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { readFileSync } from 'fs';
 import { UsersRepository } from '../../users/users.repository';
 import { RedisService } from '../../redis/redis.service';
 import { JwtPayload } from '../../common/types/jwt-payload.interface';
@@ -15,20 +14,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly redisService: RedisService,
   ) {
     // Determine whether to use RS256 (public key) or HS256 (secret)
-    const publicKeyPath = configService.get<string>('JWT_PUBLIC_KEY_PATH');
+    const publicKey = configService.get<string>('JWT_PUBLIC_KEY');
     let secretOrKey: string | Buffer | undefined;
     let algorithms: string[] | undefined;
 
-    if (publicKeyPath) {
-      try {
-        const publicKey = readFileSync(publicKeyPath, 'utf8');
-        secretOrKey = publicKey;
-        algorithms = ['RS256'];
-      } catch (e) {
-        throw new Error(`Failed to read JWT public key: ${e.message}`);
-      }
+    if (publicKey) {
+      secretOrKey = publicKey;
+      algorithms = ['RS256'];
     } else {
-      secretOrKey = configService.get<string>('JWT_ACCESS_SECRET') || 'change-me';
+      const secret = configService.get<string>('JWT_ACCESS_SECRET');
+      if (!secret) throw new Error('Missing JWT_ACCESS_SECRET in environment');
+      secretOrKey = secret;
       algorithms = ['HS256'];
     }
 
@@ -38,8 +34,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey,
       // cast algorithms to any to satisfy Strategy type differences across versions
       algorithms: algorithms as any,
-      issuer: configService.get<string>('JWT_ISSUER') || undefined,
-      audience: configService.get<string>('JWT_AUDIENCE') || undefined,
+      issuer: configService.get<string>('JWT_ISSUER'),
+      audience: configService.get<string>('JWT_AUDIENCE'),
     });
   }
 

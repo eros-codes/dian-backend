@@ -66,23 +66,17 @@ export class PaymentService {
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
   ) {
-    this.zarinpalMerchantId =
-      this.configService.get<string>('ZARINPAL_MERCHANT_ID') || '';
-    this.zarinpalCallbackUrl =
-      this.configService.get<string>('ZARINPAL_CALLBACK') || '';
-    // Get the first client URL from the comma-separated list
-    const clientUrls = this.configService.get<string>('CLIENT_URL') || '';
-    this.clientUrl = clientUrls.split(',')[0].trim();
+    const merchantId = this.configService.get<string>('ZARINPAL_MERCHANT_ID');
+    const callbackUrl = this.configService.get<string>('ZARINPAL_CALLBACK');
+    const clientUrls = this.configService.get<string>('CLIENT_URL');
 
-    if (!this.zarinpalMerchantId) {
-      this.logger.error('ZARINPAL_MERCHANT_ID is not defined in .env');
-    }
-    if (!this.zarinpalCallbackUrl) {
-      this.logger.error('ZARINPAL_CALLBACK is not defined in .env');
-    }
-    if (!this.clientUrl) {
-      this.logger.error('CLIENT_URL is not defined in .env');
-    }
+    if (!merchantId) throw new Error('Missing ZARINPAL_MERCHANT_ID in environment');
+    if (!callbackUrl) throw new Error('Missing ZARINPAL_CALLBACK in environment');
+    if (!clientUrls) throw new Error('Missing CLIENT_URL in environment');
+
+    this.zarinpalMerchantId = merchantId;
+    this.zarinpalCallbackUrl = callbackUrl;
+    this.clientUrl = clientUrls.split(',')[0].trim();
   }
 
   /**

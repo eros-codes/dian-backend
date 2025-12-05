@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { readFileSync } from 'fs';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -19,22 +18,27 @@ import { RefreshTokenRepository } from './refresh-token.repository';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        // If RSA key paths are provided, use RS256
-        const privateKeyPath = configService.get<string>('JWT_PRIVATE_KEY_PATH');
-        const publicKeyPath = configService.get<string>('JWT_PUBLIC_KEY_PATH');
+        const privateKey = configService.get<string>('JWT_PRIVATE_KEY');
+        const publicKey = configService.get<string>('JWT_PUBLIC_KEY');
+        const accessExpiry = configService.get<string>('JWT_ACCESS_TOKEN_EXPIRY');
+        const issuer = configService.get<string>('JWT_ISSUER');
+        const audience = configService.get<string>('JWT_AUDIENCE');
 
-        if (privateKeyPath && publicKeyPath) {
-          const privateKey = readFileSync(privateKeyPath, 'utf8');
-          const publicKey = readFileSync(publicKeyPath, 'utf8');
+        // Prefer RSA keys provided via environment variables
+        if (privateKey && publicKey) {
+          if (!accessExpiry) throw new Error('Missing JWT_ACCESS_TOKEN_EXPIRY in environment');
+          if (!issuer) throw new Error('Missing JWT_ISSUER in environment');
+          if (!audience) throw new Error('Missing JWT_AUDIENCE in environment');
+
           return {
             global: true,
             privateKey,
             publicKey,
             signOptions: {
               algorithm: 'RS256',
-              expiresIn: configService.get<string>('JWT_ACCESS_TOKEN_EXPIRY') || '15m',
-              issuer: configService.get<string>('JWT_ISSUER') || 'cafe-api',
-              audience: configService.get<string>('JWT_AUDIENCE') || 'cafe-client',
+              expiresIn: accessExpiry,
+              issuer,
+              audience,
             },
             verifyOptions: {
               algorithms: ['RS256'],
@@ -42,11 +46,17 @@ import { RefreshTokenRepository } from './refresh-token.repository';
           } as any;
         }
 
-        // Fallback to HS256 using env secret
+        // Otherwise require HS256 secret in environment
+        const secret = configService.get<string>('JWT_ACCESS_SECRET');
+        if (!secret) throw new Error('Missing JWT_ACCESS_SECRET in environment');
+        if (!accessExpiry) throw new Error('Missing JWT_ACCESS_TOKEN_EXPIRY in environment');
+        if (!issuer) throw new Error('Missing JWT_ISSUER in environment');
+        if (!audience) throw new Error('Missing JWT_AUDIENCE in environment');
+
         return {
           global: true,
-          secret: configService.get<string>('JWT_ACCESS_SECRET') || 'change-me',
-          signOptions: { expiresIn: configService.get<string>('JWT_ACCESS_TOKEN_EXPIRY') || '2h' },
+          secret,
+          signOptions: { expiresIn: accessExpiry, issuer, audience },
         } as any;
       },
     }),

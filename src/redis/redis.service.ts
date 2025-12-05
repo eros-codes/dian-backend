@@ -21,10 +21,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
-    const redisUrl = this.configService.get<string>(
-      'REDIS_URL',
-      'redis://127.0.0.1:6379',
-    );
+    const redisUrl = this.configService.get<string>('REDIS_URL');
+
+    if (!redisUrl) {
+      throw new Error('Missing required environment variable REDIS_URL');
+    }
 
     this.client = redis.createClient({
       url: redisUrl,
