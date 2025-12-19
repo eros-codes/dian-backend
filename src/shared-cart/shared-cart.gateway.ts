@@ -51,10 +51,13 @@ export class SharedCartGateway
         const subscriber = redisClient.duplicate();
         await subscriber.connect();
 
+        this.logger.log('🔌 Redis subscriber connected, subscribing to cart:* pattern');
+
         await subscriber.pSubscribe(
           'cart:*',
           (message: string, channel: string) => {
             try {
+              this.logger.log(`📨 Received Redis message on channel: ${channel}`);
               const data = JSON.parse(message) as {
                 tableId: string;
                 cart: unknown;
@@ -67,12 +70,12 @@ export class SharedCartGateway
                 timestamp: new Date().toISOString(),
               });
 
-              this.logger.debug(
-                `Broadcasted cart update for table: ${tableId} (channel ${channel})`,
+              this.logger.log(
+                `✅ Broadcasted cart update for table: ${tableId} to socket room 'table:${tableId}'`,
               );
             } catch (error) {
               this.logger.error(
-                `Failed to parse Redis message: ${
+                `❌ Failed to parse Redis message: ${
                   error instanceof Error ? error.message : String(error)
                 }`,
               );
@@ -81,7 +84,7 @@ export class SharedCartGateway
         );
       } catch (error) {
         this.logger.error(
-          `Redis subscription error: ${(error as Error).message}`,
+          `❌ Redis subscription error: ${(error as Error).message}`,
         );
       }
     })();

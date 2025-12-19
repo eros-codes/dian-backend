@@ -196,13 +196,17 @@ export class SharedCartService {
   private async publishCartUpdate(tableId: string, cartRow: any) {
     try {
       const client = this.redis.getClient();
+      if (!client) {
+        this.logger.error('❌ Redis client is null!');
+        return;
+      }
       const channel = `cart:${tableId}`;
       const payload = JSON.stringify({ tableId, cart: this.mapCart(cartRow) });
       await client.publish(channel, payload);
-      this.logger.debug(`Published cart update for ${tableId} to ${channel}`);
+      this.logger.log(`✅ Published cart update for ${tableId} to Redis channel: ${channel}`);
     } catch (error) {
       this.logger.error(
-        `Failed to publish cart update: ${(error as Error).message}`,
+        `❌ Failed to publish cart update: ${(error as Error).message}`,
       );
     }
   }
