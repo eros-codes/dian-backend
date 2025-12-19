@@ -42,6 +42,8 @@ export class SharedCartService {
   }
 
   async addItem(tableId: string, payload: CartItemPayload) {
+    this.logger.log(`➡️ addItem called for table=${tableId} payload=${JSON.stringify(payload)}`);
+
     const cart = await this.prisma.sharedCart.findUnique({
       where: { tableId },
       include: { items: true },
@@ -61,12 +63,14 @@ export class SharedCartService {
     let updatedCart: any;
     if (existingItem) {
       // Update quantity
+      this.logger.log(`🔁 existing item ${existingItem.id} found, incrementing quantity by ${payload.quantity}`);
       await this.prisma.sharedCartItem.update({
         where: { id: existingItem.id },
         data: { quantity: existingItem.quantity + payload.quantity },
       });
     } else {
       // Add new item
+      this.logger.log(`➕ creating new item ${existingItemId} qty=${payload.quantity}`);
       await this.prisma.sharedCartItem.create({
         data: {
           id: existingItemId,
