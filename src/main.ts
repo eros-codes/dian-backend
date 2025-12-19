@@ -193,12 +193,9 @@ async function bootstrap() {
   // Read allowed origins from environment variable (comma-separated)
   const allowedOrigins = process.env.CLIENT_URL
     ? process.env.CLIENT_URL.split(',').map((o) => o.trim())
-    : [
-        'http://localhost:3001',
-        'http://localhost:3002',
-        'http://192.168.0.177:3001',
-        'http://192.168.0.177:3002',
-      ];
+    : [];
+
+  logger.log(`Allowed CORS origins: ${JSON.stringify(allowedOrigins)}`);
 
   const uploadsDir = join(process.cwd(), 'uploads');
   if (!existsSync(uploadsDir)) {
