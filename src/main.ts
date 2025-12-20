@@ -217,6 +217,17 @@ async function bootstrap() {
   // Parse cookies so session guards can access table_session
   app.use(cookieParser());
 
+  // Simple access logger to help diagnose network/CORS issues during debugging
+  app.use((req, res, next) => {
+    try {
+      const origin = (req.headers && (req.headers.origin as string)) || '-';
+      logger.log(`HTTP ${req.method} ${req.originalUrl} origin=${origin}`);
+    } catch (e) {
+      // ignore
+    }
+    next();
+  });
+
   // Apply basic security headers via Helmet
   try {
     app.use(
