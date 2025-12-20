@@ -96,7 +96,10 @@ export class SharedCartService {
   }
 
   async updateItemQuantity(tableId: string, itemId: string, quantity: number) {
+    this.logger.log(`➡️ updateItemQuantity for table=${tableId} item=${itemId} qty=${quantity}`);
+
     if (quantity <= 0) {
+      this.logger.log(`↩️ quantity<=0, delegating to removeItem for ${itemId}`);
       return this.removeItem(tableId, itemId);
     }
 
@@ -105,6 +108,7 @@ export class SharedCartService {
     });
 
     if (!cart) {
+      this.logger.error(`Cart not found for table ${tableId}`);
       throw new Error(`Cart not found for table ${tableId}`);
     }
 
@@ -115,15 +119,19 @@ export class SharedCartService {
 
     const updatedCart = await this.recalculateTotals(tableId);
     await this.publishCartUpdate(tableId, updatedCart);
+    this.logger.log(`✅ updateItemQuantity completed for table=${tableId} item=${itemId}`);
     return this.mapCart(updatedCart);
   }
 
   async removeItem(tableId: string, itemId: string) {
+    this.logger.log(`➡️ removeItem called for table=${tableId} item=${itemId}`);
+
     const cart = await this.prisma.sharedCart.findUnique({
       where: { tableId },
     });
 
     if (!cart) {
+      this.logger.error(`Cart not found for table ${tableId}`);
       throw new Error(`Cart not found for table ${tableId}`);
     }
 
@@ -133,15 +141,19 @@ export class SharedCartService {
 
     const updatedCart = await this.recalculateTotals(tableId);
     await this.publishCartUpdate(tableId, updatedCart);
+    this.logger.log(`✅ removeItem completed for table=${tableId} item=${itemId}`);
     return this.mapCart(updatedCart);
   }
 
   async clearCart(tableId: string) {
+    this.logger.log(`➡️ clearCart called for table=${tableId}`);
+
     const cart = await this.prisma.sharedCart.findUnique({
       where: { tableId },
     });
 
     if (!cart) {
+      this.logger.error(`Cart not found for table ${tableId}`);
       throw new Error(`Cart not found for table ${tableId}`);
     }
 
@@ -166,6 +178,7 @@ export class SharedCartService {
     });
     if (cartRow) {
       await this.publishCartUpdate(tableId, cartRow);
+      this.logger.log(`✅ clearCart published for table=${tableId}`);
     }
 
     return updated;
@@ -187,6 +200,8 @@ export class SharedCartService {
       new Decimal(0),
     );
 
+    this.logger.log(`ℹ️ recalculateTotals table=${tableId} totalItems=${totalItems} totalAmount=${totalAmount.toString()}`);
+
     return this.prisma.sharedCart.update({
       where: { id: cart.id },
       data: {
@@ -206,8 +221,8 @@ export class SharedCartService {
       }
       const channel = `cart:${tableId}`;
       const payload = JSON.stringify({ tableId, cart: this.mapCart(cartRow) });
-      await client.publish(channel, payload);
-      this.logger.log(`✅ Published cart update for ${tableId} to Redis channel: ${channel}`);
+      const result = await client.publish(channel, payload);
+      this.logger.log(`✅ Published cart update for ${tableId} to Redis channel: ${channel} (subscribers=${result})`);
     } catch (error) {
       this.logger.error(
         `❌ Failed to publish cart update: ${(error as Error).message}`,

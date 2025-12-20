@@ -64,6 +64,15 @@ export class SharedCartGateway
               };
               const { tableId, cart } = data;
 
+              // compute room size if possible
+              let roomSize = 0;
+              try {
+                const room = this.server.sockets.adapter.rooms.get(`table:${tableId}`);
+                roomSize = room ? room.size : 0;
+              } catch (e) {
+                // ignore
+              }
+
               // Broadcast to all clients in this table room
               this.server.to(`table:${tableId}`).emit('cartUpdated', {
                 cart,
@@ -71,11 +80,12 @@ export class SharedCartGateway
               });
 
               this.logger.log(
-                `✅ Broadcasted cart update for table: ${tableId} to socket room 'table:${tableId}'`,
+                `✅ Broadcasted cart update for table: ${tableId} to socket room 'table:${tableId}' (roomSize=${roomSize})`,
               );
+              this.logger.debug(`payload preview: ${JSON.stringify(cart).slice(0, 1000)}`);
             } catch (error) {
               this.logger.error(
-                `❌ Failed to parse Redis message: ${
+                `❌ Failed to parse/emit Redis message: ${
                   error instanceof Error ? error.message : String(error)
                 }`,
               );
