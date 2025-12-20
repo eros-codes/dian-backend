@@ -217,6 +217,23 @@ async function bootstrap() {
   // Parse cookies so session guards can access table_session
   app.use(cookieParser());
 
+  // Support method override via header or query param for environments
+  // where certain HTTP verbs (DELETE/PUT/PATCH) are blocked by a CDN/WAF.
+  // Client can send `X-HTTP-Method-Override: DELETE` or `?_method=DELETE`.
+  app.use((req, _res, next) => {
+    try {
+      const override = (req.headers['x-http-method-override'] as string) ||
+        (req.query && (req.query as Record<string, unknown>)._method as string);
+      if (override && typeof override === 'string') {
+        // Mutate method so Nest/Express will route using the overridden verb
+        (req as any).method = override.toUpperCase();
+      }
+    } catch (e) {
+      // ignore
+    }
+    next();
+  });
+
   // Simple access logger to help diagnose network/CORS issues during debugging
   app.use((req, res, next) => {
     try {
