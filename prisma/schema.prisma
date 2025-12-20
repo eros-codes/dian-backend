@@ -281,35 +281,4 @@ enum SessionAction {
   issue
   consume
 }
-
-model SharedCart {
-  id           String   @id @default(cuid())
-  tableId      String
-  items        SharedCartItem[]
-  totalAmount  Decimal  @db.Decimal(15, 2) @default(0)
-  totalItems   Int      @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@unique([tableId])
-  @@index([createdAt])
-  @@map("shared_carts")
-}
-
-model SharedCartItem {
-  id             String     @id @default(cuid())
-  cartId         String
-  cart           SharedCart @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  productId      String
-  quantity       Int
-  unitPrice      Decimal    @db.Decimal(15, 2)
-  baseUnitPrice  Decimal    @db.Decimal(15, 2)
-  optionsSubtotal Decimal   @db.Decimal(15, 2) @default(0)
-  options        Json?      // [{ id, name, additionalPrice }]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  @@index([cartId])
-  @@index([productId])
-  @@map("shared_cart_items")
-}
+// SharedCart and SharedCartItem models removed - cart is client-local only now
