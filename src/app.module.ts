@@ -26,6 +26,7 @@ import { CommentsModule } from './comments/comments.module';
 import { RedisModule } from './redis/redis.module';
 import { QrModule } from './qr/qr.module';
 import { DiningTablesModule } from './dining-tables/dining-tables.module';
+import { CartModule } from './cart/cart.module';
 // SharedCartModule removed - cart is now client-local only
 
 @Module({
@@ -64,6 +65,7 @@ import { DiningTablesModule } from './dining-tables/dining-tables.module';
     CommentsModule,
     QrModule,
     DiningTablesModule,
+    CartModule,
     // SharedCartModule removed
   ],
   controllers: [AppController, UploadController],
