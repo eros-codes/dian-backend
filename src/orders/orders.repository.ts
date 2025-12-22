@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { OrderItemModel, OrderModel } from '../domain/order.model';
 import { OrderQueryDto } from './dto/order-query.dto';
 import { OrderStatusEnum } from '../common/enums/order-status.enum';
@@ -188,7 +189,7 @@ export class OrdersRepository {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: import('../redis/redis.service').RedisService,
+    private readonly redis: RedisService,
   ) {}
 
   async create(data: CreateOrderData): Promise<OrderModel> {
