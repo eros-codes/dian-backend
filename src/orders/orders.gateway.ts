@@ -37,7 +37,7 @@ export class OrdersGateway implements OnGatewayInit {
         const subscriber = redisClient.duplicate();
         await subscriber.connect();
 
-        this.logger.log('🔌 Orders gateway connected to Redis, subscribing to orders:*, products, settings');
+        this.logger.log('🔌 Orders gateway connected to Redis, subscribing to orders:*, products, settings, banners');
 
         await subscriber.pSubscribe('orders:*', (message: string, channel: string) => {
           try {
@@ -69,6 +69,17 @@ export class OrdersGateway implements OnGatewayInit {
             this.logger.log(`Broadcasted settings update from ${channel}`);
           } catch (err) {
             this.logger.error('Failed to parse Redis settings message', err as any);
+          }
+        });
+
+        // banners channel
+        await subscriber.pSubscribe('banners', (message: string, channel: string) => {
+          try {
+            const data = JSON.parse(message);
+            this.server.emit('bannersUpdated', data);
+            this.logger.log(`Broadcasted banners update from ${channel}`);
+          } catch (err) {
+            this.logger.error('Failed to parse Redis banners message', err as any);
           }
         });
       } catch (err) {

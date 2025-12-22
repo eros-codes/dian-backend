@@ -1,14 +1,18 @@
 // backend/src/banners/banners.repository.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { Banner, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 type BannerCreateInput = Prisma.BannerUncheckedCreateInput;
 type BannerUpdateInput = Prisma.BannerUpdateInput;
 
 @Injectable()
 export class BannersRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
+  ) {}
 
   async create(data: BannerCreateInput): Promise<Banner> {
     const toCreate: BannerCreateInput = {
@@ -16,13 +20,23 @@ export class BannersRepository {
       order: data.order ?? 0,
     };
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.banner.updateMany({
         where: {},
         data: { order: { increment: 1 } },
       });
       return tx.banner.create({ data: toCreate });
     });
+
+    // Publish banner update to Redis so gateway broadcasts to clients
+    try {
+      await this.redis.publish('banners', JSON.stringify({ action: 'created', id: result.id }));
+    } catch (err) {
+      // Don't fail if Redis unavailable
+      console.error('Failed to publish banner creation to Redis:', err);
+    }
+
+    return result;
   }
 
   async findAllActive(): Promise<Banner[]> {
@@ -48,7 +62,17 @@ export class BannersRepository {
       throw new NotFoundException('Banner not found');
     }
 
-    return this.prisma.banner.update({ where: { id }, data });
+    const result = await this.prisma.banner.update({ where: { id }, data });
+
+    // Publish banner update to Redis so gateway broadcasts to clients
+    try {
+      await this.redis.publish('banners', JSON.stringify({ action: 'updated', id }));
+    } catch (err) {
+      // Don't fail if Redis unavailable
+      console.error('Failed to publish banner update to Redis:', err);
+    }
+
+    return result;
   }
 
   async swapOrders(idA: string, idB: string): Promise<void> {
@@ -65,6 +89,13 @@ export class BannersRepository {
       await tx.banner.update({ where: { id: idA }, data: { order: bOrder } });
       await tx.banner.update({ where: { id: idB }, data: { order: aOrder } });
     });
+
+    // Publish banner update to Redis
+    try {
+      await this.redis.publish('banners', JSON.stringify({ action: 'reordered' }));
+    } catch (err) {
+      console.error('Failed to publish banner reorder to Redis:', err);
+    }
   }
 
   async reorder(ids: string[]): Promise<void> {
@@ -74,6 +105,13 @@ export class BannersRepository {
         await tx.banner.update({ where: { id }, data: { order: i } });
       }
     });
+
+    // Publish banner update to Redis
+    try {
+      await this.redis.publish('banners', JSON.stringify({ action: 'reordered' }));
+    } catch (err) {
+      console.error('Failed to publish banner reorder to Redis:', err);
+    }
   }
 
   async remove(id: string): Promise<void> {
@@ -83,5 +121,12 @@ export class BannersRepository {
     }
 
     await this.prisma.banner.delete({ where: { id } });
+
+    // Publish banner deletion to Redis
+    try {
+      await this.redis.publish('banners', JSON.stringify({ action: 'deleted', id }));
+    } catch (err) {
+      console.error('Failed to publish banner deletion to Redis:', err);
+    }
   }
 }
