@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, Inject } from '@nestjs/common';
 import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
@@ -189,7 +189,7 @@ export class OrdersRepository {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
   async create(data: CreateOrderData): Promise<OrderModel> {
