@@ -146,4 +146,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async ttl(key: string): Promise<number> {
     return await this.client.ttl(key);
   }
+
+  /**
+   * Publish message to Redis channel for pub/sub
+   */
+  async publish(channel: string, message: string): Promise<number> {
+    return await this.client.publish(channel, message);
+  }
 }
