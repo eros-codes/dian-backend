@@ -32,7 +32,7 @@ export class BannersRepository {
     try {
       const receivers = await this.redis.publish('banners', JSON.stringify({ action: 'created', id: result.id }));
       // receivers = number of clients that received the message
-      this.redis?.getClient && console.log(`[banners.repository] published 'created' to 'banners' channel, receivers=${receivers}`);
+      console.log(`[banners.repository] published 'created' to 'banners' channel, receivers=${receivers}`);
     } catch (err) {
       // Don't fail if Redis unavailable
       console.error('Failed to publish banner creation to Redis:', err);
@@ -69,7 +69,7 @@ export class BannersRepository {
     // Publish banner update to Redis so gateway broadcasts to clients
     try {
       const receivers = await this.redis.publish('banners', JSON.stringify({ action: 'updated', id }));
-      this.redis?.getClient && console.log(`[banners.repository] published 'updated' to 'banners' channel, receivers=${receivers}`);
+      console.log(`[banners.repository] published 'updated' to 'banners' channel, receivers=${receivers}`);
     } catch (err) {
       // Don't fail if Redis unavailable
       console.error('Failed to publish banner update to Redis:', err);
@@ -96,7 +96,7 @@ export class BannersRepository {
     // Publish banner update to Redis
     try {
       const receivers = await this.redis.publish('banners', JSON.stringify({ action: 'reordered' }));
-      this.redis?.getClient && console.log(`[banners.repository] published 'reordered' to 'banners' channel, receivers=${receivers}`);
+      console.log(`[banners.repository] published 'reordered' to 'banners' channel, receivers=${receivers}`);
     } catch (err) {
       console.error('Failed to publish banner reorder to Redis:', err);
     }
@@ -113,7 +113,7 @@ export class BannersRepository {
     // Publish banner update to Redis
     try {
       const receivers = await this.redis.publish('banners', JSON.stringify({ action: 'reordered' }));
-      this.redis?.getClient && console.log(`[banners.repository] published 'reordered' to 'banners' channel, receivers=${receivers}`);
+      console.log(`[banners.repository] published 'reordered' to 'banners' channel, receivers=${receivers}`);
     } catch (err) {
       console.error('Failed to publish banner reorder to Redis:', err);
     }
@@ -130,7 +130,7 @@ export class BannersRepository {
     // Publish banner deletion to Redis
     try {
       const receivers = await this.redis.publish('banners', JSON.stringify({ action: 'deleted', id }));
-      this.redis?.getClient && console.log(`[banners.repository] published 'deleted' to 'banners' channel, receivers=${receivers}`);
+      console.log(`[banners.repository] published 'deleted' to 'banners' channel, receivers=${receivers}`);
     } catch (err) {
       console.error('Failed to publish banner deletion to Redis:', err);
     }
