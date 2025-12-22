@@ -1,6 +1,7 @@
 //---product.repository.ts---//
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import type { Prisma } from '@prisma/client';
 import {
@@ -27,7 +28,10 @@ export type ProductOptionSyncInput = {
 
 @Injectable()
 export class ProductsRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   private imagesCreatePayload(images?: ProductImageModel[]) {
     if (!images || images.length === 0) return undefined;
@@ -178,12 +182,24 @@ export class ProductsRepository {
       updateData.isAvailable = data.isAvailable;
     if (data.soldCount !== undefined) updateData.soldCount = data.soldCount;
 
-    const updated = await this.prisma.product.update({
+    const updatedRow = await this.prisma.product.update({
       where: { id },
       data: updateData,
       include: { category: true, images: true, options: true },
     });
-    return ProductMapper.toDomain(updated as PrismaProductWithRelations);
+    const domain = ProductMapper.toDomain(updatedRow as PrismaProductWithRelations);
+
+    // Publish product update event so websocket/clients can react immediately
+    try {
+      await this.redis.getClient().publish(
+        'products',
+        JSON.stringify({ type: 'productUpdated', id, product: domain }),
+      );
+    } catch (e) {
+      // don't fail the update if publish fails; log later if needed
+    }
+
+    return domain;
   }
 
   async remove(id: string): Promise<boolean> {

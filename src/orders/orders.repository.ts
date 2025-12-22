@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrderItemModel, OrderModel } from '../domain/order.model';
@@ -184,7 +184,12 @@ function buildOrderInclude() {
 
 @Injectable()
 export class OrdersRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(OrdersRepository.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: import('../redis/redis.service').RedisService,
+  ) {}
 
   async create(data: CreateOrderData): Promise<OrderModel> {
     try {
@@ -295,6 +300,18 @@ export class OrdersRepository {
       data: { status },
       include: buildOrderInclude(),
     });
+
+    // Publish update to Redis so any gateway can broadcast to clients
+    (async () => {
+      try {
+        const client = this.redis.getClient();
+        if (client) {
+          await client.publish(`orders:${id}`, JSON.stringify({ orderId: id, order: mapOrder(updated) }));
+        }
+      } catch (err) {
+        this.logger.warn('Failed to publish order update to Redis: ' + (err as Error).message);
+      }
+    })();
 
     return mapOrder(updated);
   }

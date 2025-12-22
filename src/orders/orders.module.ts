@@ -5,11 +5,13 @@ import { OrdersRepository } from './orders.repository';
 import { PrismaModule } from '../prisma/prisma.module';
 import { QrModule } from '../qr/qr.module';
 import { TableSessionGuard } from '../qr/table-session.guard';
+import { RedisModule } from '../redis/redis.module';
+import { OrdersGateway } from './orders.gateway';
 
 @Module({
-  imports: [PrismaModule, QrModule],
+  imports: [PrismaModule, QrModule, RedisModule],
   controllers: [OrdersController],
-  providers: [OrdersService, OrdersRepository, TableSessionGuard],
-  exports: [OrdersService],
+  providers: [OrdersService, OrdersRepository, TableSessionGuard, OrdersGateway],
+  exports: [OrdersService, OrdersGateway],
 })
 export class OrdersModule {}
