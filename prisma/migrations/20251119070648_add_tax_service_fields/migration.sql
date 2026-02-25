@@ -1,0 +1,21 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN     "serviceFee" DECIMAL(15,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "subtotal" DECIMAL(15,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "taxAmount" DECIMAL(15,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "taxMultiplier" DECIMAL(8,4) NOT NULL DEFAULT 1;
+
+-- AlterTable
+ALTER TABLE "OrderItem" ADD COLUMN     "taxAmount" DECIMAL(15,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "totalPriceFinal" DECIMAL(15,2),
+ADD COLUMN     "unitPriceFinal" DECIMAL(15,2);
+
+-- AlterTable
+ALTER TABLE "PendingOrder" ADD COLUMN     "serviceFee" DECIMAL(15,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "subtotal" DECIMAL(15,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "taxAmount" DECIMAL(15,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "taxMultiplier" DECIMAL(8,4) NOT NULL DEFAULT 1;
+
+-- AlterTable
+ALTER TABLE "PendingOrderItem" ADD COLUMN     "taxAmount" DECIMAL(15,2) NOT NULL DEFAULT 0,
+ADD COLUMN     "totalPriceFinal" DECIMAL(15,2),
+ADD COLUMN     "unitPriceFinal" DECIMAL(15,2);

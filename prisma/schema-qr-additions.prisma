@@ -1,0 +1,22 @@
+// Add these models to prisma/schema.prisma
+
+model TableSessionLog {
+  id         String   @id @default(cuid())
+  token      String   @db.VarChar(32)
+  tableId    String   @db.VarChar(32)
+  action     SessionAction
+  ip         String   @db.VarChar(64)
+  userAgent  String   @db.Text
+  result     String   @db.VarChar(64)
+  createdAt  DateTime @default(now())
+
+  @@index([tableId])
+  @@index([createdAt])
+  @@index([action, result])
+  @@map("table_session_logs")
+}
+
+enum SessionAction {
+  issue
+  consume
+}

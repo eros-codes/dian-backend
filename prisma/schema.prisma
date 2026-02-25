@@ -1,0 +1,285 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum CategoryType {
+  CAFE
+  RESTAURANT
+  BREAKFAST
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role     
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id              String           @id @default(cuid())
+  name            String           @unique
+  iconId          String?          @unique
+  discountPercent Int              @default(0)
+  isActive        Boolean          @default(true)
+  type            CategoryType     @default(CAFE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  products        Product[]
+  icon            CategoryIcon?    @relation("CategoryIconRelation", fields: [iconId], references: [id], onDelete: SetNull)
+  options         CategoryOption[]
+}
+
+model CategoryIcon {
+  id       String    @id @default(uuid())
+  iconPath String
+  category Category? @relation("CategoryIconRelation")
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  name        String
+  description String
+  originalPrice Decimal      @db.Decimal(15, 2)
+  discountPercent Int?
+  price       Decimal        @db.Decimal(15, 2)
+  soldCount   Int            @default(0)
+  isAvailable Boolean        @default(true)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  categoryId  String
+  orderItems  OrderItem[]
+  category    Category       @relation(fields: [categoryId], references: [id])
+  images      ProductImage[]
+  options     ProductOption[]
+
+  @@index([categoryId])
+}
+
+model ProductOption {
+  id              Int      @id @default(autoincrement())
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       String
+  name            String   @db.VarChar(120)
+  additionalPrice Int      @default(0)
+  isAvailable     Boolean  @default(true)
+  categoryOptionId Int?
+  categoryOption   CategoryOption? @relation(fields: [categoryOptionId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([categoryOptionId])
+}
+
+model CategoryOption {
+  id              Int       @id @default(autoincrement())
+  category        Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId      String
+  name            String    @db.VarChar(120)
+  additionalPrice Int       @default(0)
+  isAvailable     Boolean   @default(true)
+  productOptions  ProductOption[]
+
+  @@index([categoryId])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String
+  productId String
+  createdAt DateTime @default(now())
+  publicId  String   @default("")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id                String      @id @default(cuid())
+  tableNumber       String      // شماره میز
+  status            OrderStatus @default(CONFIRMED)
+  paymentMethod     PaymentMethod
+  trackingCode      String?     // Authority یا tracking code برگشتی از درگاه
+  totalAmount       Decimal     @db.Decimal(15, 2)
+  subtotal          Decimal     @db.Decimal(15, 2) @default(0)
+  serviceFee        Decimal     @db.Decimal(15, 2) @default(0)
+  taxMultiplier     Decimal     @db.Decimal(8, 4)  @default(1)
+  taxAmount         Decimal     @db.Decimal(15, 2) @default(0)
+  notes             String?     @db.Text
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  paymentGatewayRef String?     // شماره پیگیری نهایی درگاه
+  items             OrderItem[]
+
+  @@index([tableNumber])
+  @@index([createdAt])
+}
+
+model PendingOrder {
+  id            String      @id @default(cuid())
+  tableNumber   String
+  paymentMethod PaymentMethod
+  totalAmount   Decimal     @db.Decimal(15, 2)
+  subtotal      Decimal     @db.Decimal(15, 2) @default(0)
+  serviceFee    Decimal     @db.Decimal(15, 2) @default(0)
+  taxMultiplier Decimal     @db.Decimal(8, 4)  @default(1)
+  taxAmount     Decimal     @db.Decimal(15, 2) @default(0)
+  notes         String?     @db.Text
+  authorityCode String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         PendingOrderItem[]
+
+  @@index([tableNumber])
+  @@index([createdAt])
+}
+
+model PendingOrderItem {
+  id             String       @id @default(cuid())
+  pendingOrder   PendingOrder @relation(fields: [pendingOrderId], references: [id], onDelete: Cascade)
+  pendingOrderId String
+  productId      String
+  quantity       Int
+  unitPrice      Decimal      @db.Decimal(15, 2)
+  totalPrice     Decimal      @db.Decimal(15, 2)
+  unitPriceFinal Decimal?     @db.Decimal(15, 2)
+  totalPriceFinal Decimal?    @db.Decimal(15, 2)
+  taxAmount      Decimal      @db.Decimal(15, 2) @default(0)
+  optionsJson    Json         @default("[]")
+}
+
+enum PaymentMethod {
+  ONLINE
+  COD
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  productId  String
+  quantity   Int
+  unitPrice  Decimal @db.Decimal(15, 2)
+  totalPrice Decimal @db.Decimal(15, 2)
+  unitPriceFinal Decimal? @db.Decimal(15, 2)
+  totalPriceFinal Decimal? @db.Decimal(15, 2)
+  taxAmount      Decimal @db.Decimal(15, 2) @default(0)
+  optionsJson    Json    @default("[]")
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product    Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+enum Role {
+  ADMIN
+  USER
+  PRIMARY
+  SECONDARY
+}
+
+enum OrderStatus {
+  CONFIRMED
+  DELIVERED
+  PAID
+  CANCELLED
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  title     String?
+  caption   String?
+  imageUrl  String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SalesSnapshot {
+  id        String   @id @default(cuid())
+  adminId   String
+  resetAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  familyId   String
+  isRevoked  Boolean  @default(false)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model FooterSetting {
+  id     Int     @id @default(autoincrement())
+  key    String  @unique
+  title  String  @default("")
+  url    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  name       String?
+  message    String   @db.Text
+  adminReply String?  @db.Text
+  isReplied  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isReplied])
+}
+
+model DiningTable {
+  id          String   @id @default(cuid())
+  staticId    String   @unique @db.VarChar(32)
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sessionLogs TableSessionLog[] @relation("DiningTableSessionLogs")
+
+  @@map("tables")
+}
+
+model TableSessionLog {
+  id         String        @id @default(cuid())
+  token      String        @db.VarChar(32)
+  tableId    String?       @db.VarChar(32)
+  action     SessionAction
+  ip         String        @db.VarChar(64)
+  userAgent  String        @db.Text
+  result     String        @db.VarChar(64)
+  createdAt  DateTime      @default(now())
+
+  table      DiningTable?  @relation("DiningTableSessionLogs", fields: [tableId], references: [staticId], onDelete: SetNull)
+
+  @@index([tableId])
+  @@index([createdAt])
+  @@index([action, result])
+  @@map("table_session_logs")
+}
+
+enum SessionAction {
+  issue
+  consume
+}
+// SharedCart and SharedCartItem models removed - cart is client-local only now
